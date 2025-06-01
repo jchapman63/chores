@@ -1,0 +1,17 @@
+# Example Crontab Configuration for Weekly Chore Rotation
+
+# Run the chore rotation every Monday at 8:00 AM
+0 8 * * 1 cd /path/to/chores && go run cmd/chores/main.go weekly >> /var/log/chores_rotation.log 2>&1
+
+# How to install this crontab:
+# 1. Edit this file to update the path to your chores directory
+# 2. Install the crontab with: crontab -e
+# 3. Paste the content of this file into your crontab
+# 4. Save and exit
+
+# Make sure the log directory exists and is writable:
+# sudo mkdir -p /var/log
+# sudo touch /var/log/chores_rotation.log
+# sudo chmod 666 /var/log/chores_rotation.log
+
+# To view logs: tail -f /var/log/chores_rotation.log
