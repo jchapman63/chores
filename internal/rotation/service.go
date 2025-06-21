@@ -29,7 +29,7 @@ func NewService(dbQueries db.Querier) *RotationService {
 }
 
 // NextChore returns the next chore in the rotation
-func NextChore(current ChoreType) ChoreType {
+func nextChore(current ChoreType) ChoreType {
 	switch current {
 	case ChoreTypeBathroom:
 		return ChoreTypeFloor
@@ -43,6 +43,16 @@ func NextChore(current ChoreType) ChoreType {
 	}
 }
 
+func (s *RotationService) OnboardRoommate(ctx context.Context, name, email, chore string) error {
+	_, err := s.dbQueries.UpsertRoommate(ctx, db.UpsertRoommateParams{
+		Name:  name,
+		Email: email,
+		Chore: chore,
+	})
+
+	return err
+}
+
 // RotateChores rotates all roommates' chores to the next in the sequence
 func (s *RotationService) RotateChores(ctx context.Context) error {
 	// Get all roommates
@@ -54,7 +64,7 @@ func (s *RotationService) RotateChores(ctx context.Context) error {
 	// Update each roommate's chore to the next one
 	for _, roommate := range roommates {
 		currentChore := ChoreType(roommate.Chore)
-		nextChore := NextChore(currentChore)
+		nextChore := nextChore(currentChore)
 
 		_, err := s.dbQueries.UpdateRoommateChore(ctx, db.UpdateRoommateChoreParams{
 			ID:    roommate.ID,
@@ -64,6 +74,5 @@ func (s *RotationService) RotateChores(ctx context.Context) error {
 			return err
 		}
 	}
-
 	return nil
 }

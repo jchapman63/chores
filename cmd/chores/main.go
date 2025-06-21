@@ -16,6 +16,12 @@ import (
 	"github.com/jchapman63/chores/internal/sns"
 )
 
+type Onboardee struct {
+	Name  string
+	Email string
+	Chore string
+}
+
 func main() {
 	l := log.New(os.Stdout, "CHORES: ", log.LstdFlags)
 	l.Println("Starting Chores Application...")
