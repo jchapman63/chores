@@ -13,6 +13,7 @@ import (
 	"github.com/jchapman63/chores/config"
 	db "github.com/jchapman63/chores/internal/db/sqlc"
 	"github.com/jchapman63/chores/internal/rotation"
+	"github.com/jchapman63/chores/internal/sns"
 )
 
 func main() {
@@ -20,12 +21,13 @@ func main() {
 	l.Println("Starting Chores Application...")
 	cronLog := cron.VerbosePrintfLogger(l)
 
-	// Load database configuration
-	dbConfig := config.LoadDBConfig()
-	connString := dbConfig.GetDBConnectionString()
+	ctx := context.Background()
 
-	// Establish database connection
-	dbPool, err := pgxpool.New(context.Background(), connString)
+	// Load configuration
+	cfg := config.LoadConfig()
+
+	// Create a new database connection pool
+	dbPool, err := pgxpool.New(context.Background(), cfg.DB.GetDBConnectionString())
 	if err != nil {
 		l.Fatalf("Unable to connect to database: %v", err)
 	}
@@ -35,14 +37,18 @@ func main() {
 	if err := dbPool.Ping(context.Background()); err != nil {
 		l.Fatalf("Unable to ping database: %v", err)
 	}
-	l.Println("Successfully connected to database")
 
 	// Initialize sqlc queries
 	queries := db.New(dbPool)
 
 	// Initialize rotation service with database queries
 	rotationService := rotation.NewService(queries)
-	l.Println("Rotation service initialized successfully")
+
+	// Establish SNS client
+	_, err = sns.NewSNSClient(ctx)
+	if err != nil {
+		l.Fatalf("Failed to create SNS client: %v", err)
+	}
 
 	// Create a new cron scheduler with seconds field disabled
 	c := cron.New(cron.WithLogger(cronLog))
