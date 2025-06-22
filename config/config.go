@@ -30,7 +30,6 @@ func LoadConfig() *Config {
 	c.AWS = &AWSConfig{
 		SNSTopicARN: getEnvWithDefault("AWS_SNS_TOPIC_ARN", ""),
 	}
-	fmt.Println("DEBUG - Loaded configuration:", c.DB)
 	return c
 }
 
