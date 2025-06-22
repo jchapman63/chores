@@ -51,10 +51,8 @@ func main() {
 		l.Fatalf("Unable to ping database: %v", err)
 	}
 
-	// Initialize sqlc queries
+	// Initialize sqlc queries and rotation service
 	queries := db.New(dbPool)
-
-	// Initialize rotation service
 	rotationService := rotation.NewService(queries)
 	if err := rotationService.InitializeChores(ctx); err != nil {
 		l.Fatalf("Failed to initialize chores: %v", err)
@@ -70,7 +68,6 @@ func main() {
 		TopicArn: &cfg.AWS.SNSTopicARN,
 	})
 	if err != nil {
-		// TODO curious what error happens if there are emails not subscribed to the topic yet
 		l.Printf("Failed to get publish initial digest: %v", err)
 	}
 

@@ -44,16 +44,16 @@ func nextChore(current ChoreType) ChoreType {
 	}
 }
 
-// Starts the chore rotation based on the current state of roommates in the real world
+// Starts the chore rotation based on the state of roommates in the real world at the time of writing this app
 func (s *RotationService) InitializeChores(ctx context.Context) error {
 	roommates := []struct {
 		name  string
 		email string
 		chore string
 	}{
-		{"Jason", "jasonschmitz@icloud.com", "BATHROOM"},
-		{"Daniel", "danielhiser17@gmail.com", "FLOOR"},
-		{"Jordan", "jordanchap20@gmail.com", "COUNTER"},
+		{"Jason", "jasonschmitz@icloud.com", "COUNTER"},
+		{"Daniel", "danielhiser17@gmail.com", "BATHROOM"},
+		{"Jordan", "jordanchap20@gmail.com", "FLOOR"},
 	}
 	for _, rm := range roommates {
 		err := s.onboardRoommate(ctx, rm.name, rm.email, rm.chore)
@@ -109,7 +109,7 @@ func (s *RotationService) GetRoommates(ctx context.Context) ([]db.Roommate, erro
 
 func (s *RotationService) CreateChoreDigest(rms []db.Roommate) *string {
 	// Create a digest message for the chores
-	digest := "Chore Rotation Digest:\n"
+	digest := "Chore Rotation Digest:\n\n"
 	for _, rm := range rms {
 		digest += rm.Name + " is responsible for " + rm.Chore + "\n"
 	}

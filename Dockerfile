@@ -11,7 +11,7 @@ RUN go mod download
 
 # Build
 COPY . .
-RUN go build -o ./chores .
+RUN go build -o ./chores ./cmd/chores
 
 
 # Optional:
