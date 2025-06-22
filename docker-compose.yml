@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   postgres:
     image: postgres:17
@@ -19,7 +17,26 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-
+    networks:
+      - chores-network
+  chores:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    image: chores:latest
+    container_name: chores
+    environment:
+      - DB_HOST=postgres
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - chores-network
 volumes:
   pgdata:
     driver: local
+networks:
+  chores-network:
+    driver: bridge

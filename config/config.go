@@ -2,7 +2,10 @@ package config
 
 import (
 	"fmt"
+	"log"
 	"os"
+
+	"github.com/joho/godotenv"
 )
 
 type Config struct {
@@ -11,6 +14,11 @@ type Config struct {
 }
 
 func LoadConfig() *Config {
+	// Load .env file
+	err := godotenv.Load()
+	if err != nil {
+		log.Println("Error loading .env file")
+	}
 	c := &Config{}
 	c.DB = &DBConfig{
 		Host:     getEnvWithDefault("DB_HOST", "localhost"),
@@ -22,7 +30,7 @@ func LoadConfig() *Config {
 	c.AWS = &AWSConfig{
 		SNSTopicARN: getEnvWithDefault("AWS_SNS_TOPIC_ARN", ""),
 	}
-
+	fmt.Println("DEBUG - Loaded configuration:", c.DB)
 	return c
 }
 
