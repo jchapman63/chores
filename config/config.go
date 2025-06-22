@@ -20,14 +20,14 @@ func LoadConfig() *Config {
 		DBName:   getEnvWithDefault("DB_NAME", "chores"),
 	}
 	c.AWS = &AWSConfig{
-		SNSTopic: getEnvWithDefault("AWS_SNS_TOPIC", "chores-topic"),
+		SNSTopicARN: getEnvWithDefault("AWS_SNS_TOPIC_ARN", ""),
 	}
 
 	return c
 }
 
 type AWSConfig struct {
-	SNSTopic string
+	SNSTopicARN string
 }
 
 // DBConfig stores database connection parameters

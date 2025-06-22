@@ -10,6 +10,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/robfig/cron/v3"
 
+	awssns "github.com/aws/aws-sdk-go-v2/service/sns"
 	"github.com/jchapman63/chores/config"
 	db "github.com/jchapman63/chores/internal/db/sqlc"
 	"github.com/jchapman63/chores/internal/rotation"
@@ -32,6 +33,12 @@ func main() {
 	// Load configuration
 	cfg := config.LoadConfig()
 
+	// Establish SNS client
+	snsClient, err := sns.NewSNSClient(ctx)
+	if err != nil {
+		l.Fatalf("Failed to create SNS client: %v", err)
+	}
+
 	// Create a new database connection pool
 	dbPool, err := pgxpool.New(context.Background(), cfg.DB.GetDBConnectionString())
 	if err != nil {
@@ -47,40 +54,46 @@ func main() {
 	// Initialize sqlc queries
 	queries := db.New(dbPool)
 
-	// Initialize rotation service with database queries
+	// Initialize rotation service
 	rotationService := rotation.NewService(queries)
+	if err := rotationService.InitializeChores(ctx); err != nil {
+		l.Fatalf("Failed to initialize chores: %v", err)
+	}
 
-	// Establish SNS client
-	_, err = sns.NewSNSClient(ctx)
+	// send the initial chore digest to SNS
+	rms, err := rotationService.GetRoommates(ctx)
 	if err != nil {
-		l.Fatalf("Failed to create SNS client: %v", err)
+		l.Fatalf("Failed to get roommates: %v", err)
+	}
+	_, err = snsClient.Client.Publish(ctx, &awssns.PublishInput{
+		Message:  rotationService.CreateChoreDigest(rms),
+		TopicArn: &cfg.AWS.SNSTopicARN,
+	})
+	if err != nil {
+		// TODO curious what error happens if there are emails not subscribed to the topic yet
+		l.Printf("Failed to get publish initial digest: %v", err)
 	}
 
 	// Create a new cron scheduler with seconds field disabled
 	c := cron.New(cron.WithLogger(cronLog))
 	// Add a job that runs every Monday at 9am to rotate chores automatically
 	_, err = c.AddFunc("0 9 * * 1", func() {
-		// Create context for the rotation operation
-		ctx := context.Background()
-
 		cronLog.Info("Running scheduled chore rotation...")
 		// Rotate the chores using the rotation service
-		if err := rotationService.RotateChores(ctx); err != nil {
+		rms, err := rotationService.RotateChores(ctx)
+		if err != nil {
 			cronLog.Info("Error rotating chores: %v", err)
-		} else {
-			cronLog.Info("Chores rotated successfully")
+		}
+		_, err = snsClient.Client.Publish(ctx, &awssns.PublishInput{
+			Message:  rotationService.CreateChoreDigest(rms),
+			TopicArn: &cfg.AWS.SNSTopicARN,
+		})
+		if err != nil {
+			cronLog.Info("Error sending chore digest: %v", err)
 		}
 	})
 	if err != nil {
 		l.Println(err, "Error setting up chore rotation cron job")
-	}
-
-	// Start a test cron that runs every minute
-	_, err = c.AddFunc("* * * * *", func() {
-		cronLog.Info("Test cron job running every minute")
-	})
-	if err != nil {
-		cronLog.Error(err, "Error setting up test cron job")
 	}
 
 	// Start the cron scheduler in the background
