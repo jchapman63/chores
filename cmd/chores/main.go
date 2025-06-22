@@ -73,7 +73,8 @@ func main() {
 		// Rotate the chores using the rotation service
 		rms, err := rotationService.RotateChores(ctx)
 		if err != nil {
-			cronLog.Info("Error rotating chores: %v", err)
+			cronLog.Error(err, "failed to rotate chores")
+			os.Exit(1)
 		}
 		_, err = snsClient.Client.Publish(ctx, &awssns.PublishInput{
 			Message:  rotationService.CreateChoreDigest(rms),
@@ -81,10 +82,11 @@ func main() {
 		})
 		if err != nil {
 			cronLog.Error(err, "failure to publish SNS message")
+			os.Exit(1)
 		}
 	})
 	if err != nil {
-		l.Println(err, "Error setting up chore rotation cron job")
+		l.Fatalf("Error setting up chore rotation cron job: %w", err)
 	}
 
 	// Start the cron scheduler in the background
