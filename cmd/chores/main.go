@@ -80,7 +80,7 @@ func main() {
 			TopicArn: &cfg.AWS.SNSTopicARN,
 		})
 		if err != nil {
-			cronLog.Info("Error sending chore digest: %v", err)
+			cronLog.Error(err, "failure to publish SNS message")
 		}
 	})
 	if err != nil {
