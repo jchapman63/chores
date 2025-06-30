@@ -52,19 +52,6 @@ func main() {
 		l.Fatalf("Failed to initialize chores: %v", err)
 	}
 
-	// send the initial chore digest to SNS
-	rms, err := rotationService.GetRoommates(ctx)
-	if err != nil {
-		l.Fatalf("Failed to get roommates: %v", err)
-	}
-	_, err = snsClient.Client.Publish(ctx, &awssns.PublishInput{
-		Message:  rotationService.CreateChoreDigest(rms),
-		TopicArn: &cfg.AWS.SNSTopicARN,
-	})
-	if err != nil {
-		l.Printf("Failed to get publish initial digest: %v", err)
-	}
-
 	// Create a new cron scheduler with seconds field disabled
 	c := cron.New(cron.WithLogger(cronLog))
 	// Add a job that runs every Monday at 9am to rotate chores automatically
