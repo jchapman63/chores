@@ -51,9 +51,9 @@ func (s *RotationService) InitializeChores(ctx context.Context) error {
 		email string
 		chore string
 	}{
-		{"Jason", "jasonschmitz@icloud.com", "COUNTER"},
-		{"Daniel", "danielhiser17@gmail.com", "BATHROOM"},
-		{"Jordan", "jordanchap20@gmail.com", "FLOOR"},
+		{"Jason", "jasonschmitz@icloud.com", "BATHROOM"},
+		{"Daniel", "danielhiser17@gmail.com", "FLOOR"},
+		{"Jordan", "jordanchap20@gmail.com", "COUNTER"},
 	}
 	for _, rm := range roommates {
 		err := s.onboardRoommate(ctx, rm.name, rm.email, rm.chore)
