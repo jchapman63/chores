@@ -48,9 +48,24 @@ func main() {
 	// Initialize sqlc queries and rotation service
 	queries := db.New(dbPool)
 	rotationService := rotation.NewService(queries)
-	if err := rotationService.InitializeChores(ctx); err != nil {
-		l.Fatalf("Failed to initialize chores: %v", err)
-	}
+
+	// TODO - I should split into a CLI architecture that lets me run init jobs
+	//if err := rotationService.InitializeChores(ctx); err != nil {
+	//	l.Fatalf("Failed to initialize chores: %v", err)
+	//}
+
+	//// send the initial chore digest to SNS
+	//rms, err := rotationService.GetRoommates(ctx)
+	//if err != nil {
+	//	l.Fatalf("Failed to get roommates: %v", err)
+	//}
+	//_, err = snsClient.Client.Publish(ctx, &awssns.PublishInput{
+	//	Message:  rotationService.CreateChoreDigest(rms),
+	//	TopicArn: &cfg.AWS.SNSTopicARN,
+	//})
+	//if err != nil {
+	//	l.Printf("Failed to get publish initial digest: %v", err)
+	//}
 
 	// Create a new cron scheduler with seconds field disabled
 	c := cron.New(cron.WithLogger(cronLog))
@@ -61,6 +76,24 @@ func main() {
 		rms, err := rotationService.RotateChores(ctx)
 		if err != nil {
 			cronLog.Error(err, "failed to rotate chores")
+			os.Exit(1)
+		}
+		_, err = snsClient.Client.Publish(ctx, &awssns.PublishInput{
+			Message:  rotationService.CreateChoreDigest(rms),
+			TopicArn: &cfg.AWS.SNSTopicARN,
+		})
+		if err != nil {
+			cronLog.Error(err, "failure to publish SNS message")
+			os.Exit(1)
+		}
+	})
+	// Add a job that runs every Friday at 9am and sends to the sns topic
+	_, err = c.AddFunc("0 9 * * 5", func() {
+		cronLog.Info("Running scheduled chore digest...")
+		// Get the current roommates and send a digest
+		rms, err := rotationService.GetRoommates(ctx)
+		if err != nil {
+			cronLog.Error(err, "failed to get roommates for digest")
 			os.Exit(1)
 		}
 		_, err = snsClient.Client.Publish(ctx, &awssns.PublishInput{
